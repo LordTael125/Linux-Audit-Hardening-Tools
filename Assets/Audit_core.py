@@ -7,15 +7,6 @@ os.makedirs(REPORT_DIR, exist_ok=True)
 REPORT_FILE = os.path.join(REPORT_DIR, "Report.txt")
 
 
-# # Relaunch with pkexec if not root
-# def relaunch_with_pkexec():
-#     if os.geteuid() != 0:
-#         try:
-#             script_path = os.path.realpath(__file__)
-#             subprocess.call(["pkexec", sys.executable,script_path] + sys.argv)
-#         except Exception as e:
-#             print(f"Failed to elevate privileges: {e}")
-#         sys.exit()
 
 
 def report_add(seq):
@@ -170,14 +161,11 @@ def generate_score(score, max_score):
 def main():
     print(os.getcwd(),"\n\n\n")
 
-    # if os.geteuid() != 0:
-    #     relaunch_with_pkexec()
-    #     return
 
     with open(REPORT_FILE, "w") as f:
         f.write(f"Linux Hardening Audit Report - {datetime.now()}\n\n")
 
-    max_score = 5  # Adjust as you add more checks
+    max_score = 5  
     total_score = 0
     total_score += check_firewall()
     total_score += check_ssh_config()
