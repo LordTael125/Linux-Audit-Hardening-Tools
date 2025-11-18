@@ -1,5 +1,5 @@
 # gui/main_gui.py
-import os, sys
+import os, sys, shutil
 from PyQt6.QtWidgets import QApplication, QMessageBox
 from PyQt6 import uic, QtWidgets
 from PyQt6.QtCore import QProcess, QTimer
@@ -10,9 +10,11 @@ version_state = {
 }
 
 class AuditApp(QtWidgets.QMainWindow):
-    def __init__(self, ui_file):
+    def __init__(self, ui_file, report_path):
         super().__init__()
         uic.loadUi(ui_file, self)
+
+        self.report = report_path
 
         self.runningStaus = False
         
@@ -24,10 +26,12 @@ class AuditApp(QtWidgets.QMainWindow):
 
         self.closeButton = self.findChild(QtWidgets.QPushButton,"closeButton")
         self.helpButton = self.findChild(QtWidgets.QPushButton,"helpButton")
+        self.saveReport = self.findChild(QtWidgets.QPushButton, "saveButton")
 
         self.closeButton.clicked.connect(self.close_app)
         self.helpButton.clicked.connect(self.helpDialog)
         self.runButton.clicked.connect(self.run_audit)
+        self.saveReport.clicked.connect(self.save_report)
 
     def run_audit(self):
         self.runningStaus = True
@@ -43,7 +47,7 @@ class AuditApp(QtWidgets.QMainWindow):
         self.process.finished.connect(self.finish_audit)
 
         BASE_DIR = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
-        audit_script_path = os.path.join(BASE_DIR, "core", "Audit_core.py")
+        audit_script_path = os.path.join(BASE_DIR, "Audit_core.py")
         # audit_script_path = os.path.abspath(os.path.join("Audit_core.py"))
         self.process.start("pkexec", ["python3", audit_script_path])
 
@@ -69,7 +73,15 @@ class AuditApp(QtWidgets.QMainWindow):
         msg.show()
         QTimer.singleShot(time, msg.accept)  # Close after 1 second
         return msg
-
+    
+    def show_information(self,title,message):
+        QMessageBox.information(
+            self,
+            title,
+            message
+        )
+       
+        
     def finish_audit(self):
         self.runningStaus = False
         self.runButton.setEnabled(True)
@@ -79,8 +91,8 @@ class AuditApp(QtWidgets.QMainWindow):
         QMessageBox.information(
             self,
             "Help Dialog Window",
-            "This is a linux audit evalution program\n"
-            "This program will evaluate your system security\n"
+            "This is a Linux Audit Evalution Program\n\n"
+            "This program will evaluate your system security by performing various operations\n\n"
             "Press Run Audit Button to start evaluation"
         )
 
@@ -94,10 +106,28 @@ class AuditApp(QtWidgets.QMainWindow):
             )
         else :
             title = "Closing application"
-            message = "Closing Application\nThe application is shutting down \n...."
+            message = "\nThe application is shutting down \n"
             popup = self.show_popup(title,message)
             popup.exec()
             QApplication.exit()
+
+    def save_report(self) :
+        savePath = QtWidgets.QFileDialog.getExistingDirectory(self, "Choose Path", options=QtWidgets.QFileDialog.Option.DontUseNativeDialog)
+        print("Debug 1 : Save Dir = ",savePath)
+
+        source = str(self.report)+"/../Report/Report.txt"
+        try :
+            # print("Debug 2 : Report path : ", source)
+            shutil.copy(source,savePath)
+            self.show_information("File Saved","\nFile has been successfully saved")
+        except PermissionError :
+            self.show_information("Permission Error","Failed to save\nPermission Denied")
+        except FileNotFoundError :
+            self.show_information("No Report","Run Audit tool to generate report")
+        except Exception as e :
+            self.show_information("Error!!!","Failed to save report to destination")
+                
+
             
     
 
@@ -108,7 +138,7 @@ if __name__ == "__main__":
     BASE_DIR = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
     UI_PATH = os.path.join(BASE_DIR, "Interface.ui")
 
-    window = AuditApp(UI_PATH)
+    window = AuditApp(UI_PATH,BASE_DIR)
 
     window.show()
     sys.exit(app.exec())
